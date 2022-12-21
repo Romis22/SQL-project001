@@ -60,10 +60,10 @@ FROM v_czechia_price_by_years_categories base
 JOIN v_czechia_price_by_years_categories a ON base.year_from_date = a.year_from_date - 1 AND base.name = a.name
 ORDER BY yearlyChange;
 
--- Vytvoření tabulky z úkolu.
-CREATE TABLE IF NOT EXISTS t_roman_belov_project_SQL_primary_final AS
+-- Vytvoření 1. tabulky z úkolu.
+CREATE OR REPLACE TABLE t_roman_belov_project_SQL_primary_final AS
 (
-SELECT *
+SELECT pay.*, prices.name, prices.avg_price
 FROM v_czechia_price_by_years_categories prices
 LEFT JOIN v_czechia_payroll_by_field_year pay ON
     prices.year_from_date = pay.`year`
@@ -74,13 +74,13 @@ CREATE OR REPLACE VIEW v_avgPriciesAndPays AS
 (
 SELECT a.`year`, base.avgPrice, a.avgPayAllFields
 FROM (
-    SELECT year_from_date, ROUND(AVG(avg_price),2) AS avgPrice
-    FROM v_czechia_price_by_years_categories
-    GROUP BY year_from_date) base
+    SELECT `year`, ROUND(AVG(avg_price),2) AS avgPrice
+    FROM t_roman_belov_project_sql_primary_final
+    GROUP BY `year`) base
 LEFT JOIN (
-    SELECT `year`, ROUND(AVG(avgPay)) AS avgPayAllFields
-    FROM v_czechia_payroll_by_field_year
-    GROUP BY `year`) a ON base.year_from_date = a.`year`
+    SELECT `year`, ROUND(AVG(avgPay),2) AS avgpayallfields
+    FROM t_roman_belov_project_sql_primary_final
+    GROUP BY `year`) a ON base.`year` = a.`year`
 );
 
 SELECT a.`year`,
@@ -121,3 +121,10 @@ SELECT base.*,
     base.YearlyChangeGDP - a.yearlyChangePay AS PayGDP_secondyear
 FROM v_gdpcorellation base
 LEFT JOIN v_gdpcorellation a ON base.`year` = a.`year` - 1;
+
+-- Vytvoření 2. tabulky z úkolu. Jako dodatečný materiál připravte i tabulku s HDP, GINI koeficientem a populací dalších evropských států ve stejném období, jako primární přehled pro ČR.
+CREATE TABLE IF NOT EXISTS t_Roman_Belov_project_SQL_secondary_final AS 
+(SELECT DISTINCT c.country, e.`year`, e.GDP, e.gini, e.population
+FROM countries c
+LEFT JOIN economies e ON c.country = e.country
+WHERE c.continent = 'Europe' AND e.GDP IS NOT NULL AND e.`year` BETWEEN 2006 AND 2018);
